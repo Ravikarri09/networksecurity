@@ -65,8 +65,13 @@ class DataIngestion:
             logging.info("exporting train and test file path")
 
             train_set.to_csv(
-                self.data_ingestion_config.test_file_path,index=False,header=True
+                self.data_ingestion_config.train_file_path,index=False,header=True
             )
+            test_set.to_csv(
+            self.data_ingestion_config.test_file_path,
+            index=False,
+            header=True
+        )
             logging.info(f"Exported train and test file path")
         except Exception as e:
             raise NetworkSecurityException(e,sys)
