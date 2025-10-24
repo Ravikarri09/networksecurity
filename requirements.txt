@@ -7,6 +7,6 @@ certifi
 pymongo[srv]==4.7
 dill
 PyYAML
-
+mlflow
 
 ##-e .
