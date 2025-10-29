@@ -8,6 +8,8 @@ from networksecurity.utils.mail_utils.utils import load_numpy_array_data,evaluat
 from networksecurity.utils.ml_utils.metric.classification_metric import get_classification_score
 from networksecurity.utils.ml_utils.model.estimator import NetworkModel
 import mlflow
+import dagshub
+dagshub.init(repo_owner='Ravikarri09', repo_name='networksecurity', mlflow=True)
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import r2_score
@@ -33,7 +35,7 @@ class ModelTrainer:
             mlflow.log_metric("f1_score",f1_score)
             mlflow.log_metric("precision",precision_score)
             mlflow.log_metric("recall_score",recall_score)
-            mlflow.sklearn.log_model(best_model,"model")
+            #mlflow.sklearn.log_model(best_model,"model")
 
 
 
@@ -105,6 +107,9 @@ class ModelTrainer:
 
         Network_Model=NetworkModel(preprocessor=preprocessor,model=best_model)
         save_object(self.model_trainer_config.trained_model_file_path,obj=NetworkModel)
+
+
+        save_object("final_model/model.pkl",best_model)
 
 
         ##Model trainer artifact

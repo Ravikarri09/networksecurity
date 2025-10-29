@@ -1,11 +1,11 @@
-import sys,os
+import sys, os
 from networksecurity.logging.logger import logging
 import numpy as np
 import pandas as pd
 from sklearn.impute import KNNImputer
 from sklearn.pipeline import Pipeline
-from networksecurity.constants.training_pipeline import TARGET_COLUMN
-from networksecurity.constants.training_pipeline import DATA_TRANSFORMATION_IMPUTER_PARAMS
+
+from networksecurity.constants.training_pipeline import TARGET_COLUMN, DATA_TRANSFORMATION_IMPUTER_PARAMS
 from networksecurity.entity.artifact_entity import (
     DataTransformationArtifact,
     DataValidationArtifact
@@ -13,84 +13,82 @@ from networksecurity.entity.artifact_entity import (
 from networksecurity.entity.cinfig_entity import DataTransformationConfig
 from networksecurity.exception.exception import NetworkSecurityException
 from networksecurity.utils.mail_utils.utils import save_numpy_array_data, save_object
+
+
 class DataTransformation:
     def __init__(self,
-                 data_validation_artiifact:DataValidationArtifact,
-                 data_transformation_config:DataTransformationConfig
-    
-    ):
+                 data_validation_artifact: DataValidationArtifact,
+                 data_transformation_config: DataTransformationConfig):
         try:
-            self.data_validation_artiifact:DataValidationArtifact=data_validation_artiifact
-            self.data_transformaation_config=DataTransformationConfig=data_transformation_config
+            self.data_validation_artifact = data_validation_artifact
+            self.data_transformation_config = data_transformation_config
         except Exception as e:
-            raise NetworkSecurityException(e,sys)
+            raise NetworkSecurityException(e, sys)
+
     @staticmethod
-    def read_data(file_path:str)->pd.DataFrame:
+    def read_data(file_path: str) -> pd.DataFrame:
         try:
             return pd.read_csv(file_path)
         except Exception as e:
-            raise NetworkSecurityException(e,sys)
-        
+            raise NetworkSecurityException(e, sys)
 
-    def get_data_transformer_object(self)->Pipeline:
+    def get_data_transformer_object(self) -> Pipeline:
         """
-        it initialises a KNN objext with the parameters specified in the training_pipeline file
-        and reurns a pipeline object with the KNNImputer object as the first step
-
-        Args:
-        cls:DataTransformation class
-        returns:
-        A pipeline object
+        Initializes a KNNImputer with the parameters specified in the training_pipeline file
+        and returns a pipeline object with the KNNImputer as the first step.
         """
-        logging.info("entered the get_data_transformer_object method of DataTransformation class"
-        )
+        logging.info("Entered get_data_transformer_object method of DataTransformation class")
         try:
-           imputer:KNNImputer= KNNImputer(**DATA_TRANSFORMATION_IMPUTER_PARAMS)
-           logging.info(f"initialised KNNImputer with parameters: {DATA_TRANSFORMATION_IMPUTER_PARAMS}")
-           processor:Pipeline=Pipeline([("imputer",imputer)])
-           return processor
+            imputer = KNNImputer(**DATA_TRANSFORMATION_IMPUTER_PARAMS)
+            logging.info(f"Initialized KNNImputer with parameters: {DATA_TRANSFORMATION_IMPUTER_PARAMS}")
+            processor = Pipeline([("imputer", imputer)])
+            return processor
         except Exception as e:
-            raise NetworkSecurityException(e,sys)
-        
-    def initiate_data_transformation(self)->DataTransformationArtifact:
+            raise NetworkSecurityException(e, sys)
+
+    def initiate_data_transformation(self) -> DataTransformationArtifact:
         try:
-            logging.info("Entered the initiate_data_transformation method of DataTransformation class")
-            #reading train and test file path
-            train_df=DataTransformation.read_data(self.data_validation_artiifact.valid_train_file_path)
-            test_df=DataTransformation.read_data(self.data_validation_artiifact.valid_test_file_path)
-            #training dataframe'
-            input_feature_train_df=train_df.drop(columns=[TARGET_COLUMN],axis=1)
-            target_feature_train_df=train_df[TARGET_COLUMN]
-            target_feature_train_df=target_feature_train_df.replace(-1, 0)
+            logging.info("Entered initiate_data_transformation method of DataTransformation class")
 
-            #testing dataframe
-            input_feature_test_df=test_df.drop(columns=[TARGET_COLUMN],axis=1)
-            target_feature_test_df=test_df[TARGET_COLUMN]
-            target_feature_test_df=target_feature_test_df.replace(-1, 0)
+            # Reading train and test data
+            train_df = DataTransformation.read_data(self.data_validation_artifact.valid_train_file_path)
+            test_df = DataTransformation.read_data(self.data_validation_artifact.valid_test_file_path)
 
-            preprocessor=self.get_data_transformer_object()
+            # Splitting input and target features
+            input_feature_train_df = train_df.drop(columns=[TARGET_COLUMN], axis=1)
+            target_feature_train_df = train_df[TARGET_COLUMN].replace(-1, 0)
 
-            preprocessor_object=preprocessor.fit(input_feature_train_df)
-            transformed_input_feature_train_df=preprocessor_object.transform(input_feature_train_df)
-            transformed_input_feature_test_df=preprocessor_object.transform(input_feature_test_df)
+            input_feature_test_df = test_df.drop(columns=[TARGET_COLUMN], axis=1)
+            target_feature_test_df = test_df[TARGET_COLUMN].replace(-1, 0)
 
-            train_arr=np.c_[transformed_input_feature_train_df,np.array(target_feature_train_df) ]
-            test_arr=np.c_[transformed_input_feature_test_df,np.array(target_feature_test_df) ]
+            # Preprocessor
+            preprocessor = self.get_data_transformer_object()
+            preprocessor.fit(input_feature_train_df)
 
-            #save numpy array data
-            save_numpy_array_data(self.data_transformaation_config.transformed_train_file_path,train_arr)
-            save_numpy_array_data(self.data_transformaation_config.transformed_test_file_path,test_arr)
-            save_object(self.data_transformaation_config.transformed_object_file_path,preprocessor_object)
+            transformed_input_feature_train_df = preprocessor.transform(input_feature_train_df)
+            transformed_input_feature_test_df = preprocessor.transform(input_feature_test_df)
 
+            # Combining transformed data with targets
+            train_arr = np.c_[transformed_input_feature_train_df, np.array(target_feature_train_df)]
+            test_arr = np.c_[transformed_input_feature_test_df, np.array(target_feature_test_df)]
 
-            #preparing artifacts
-            data_transformation_artifact=DataTransformationArtifact(
-                transformed_object_file_path=self.data_transformaation_config.transformed_object_file_path,
-                transformed_train_file_path=self.data_transformaation_config.transformed_train_file_path,
-                transformed_test_file_path=self.data_transformaation_config.transformed_test_file_path
+            # Saving transformed data and preprocessor object
+            save_numpy_array_data(self.data_transformation_config.transformed_train_file_path, train_arr)
+            save_numpy_array_data(self.data_transformation_config.transformed_test_file_path, test_arr)
+            save_object(self.data_transformation_config.transformed_object_file_path, preprocessor)
+
+            # Optional: also save to final model directory
+            save_object(os.path.join("final_model", "preprocessor.pkl"), preprocessor)
+
+            # Preparing artifact
+            data_transformation_artifact = DataTransformationArtifact(
+                transformed_object_file_path=self.data_transformation_config.transformed_object_file_path,
+                transformed_train_file_path=self.data_transformation_config.transformed_train_file_path,
+                transformed_test_file_path=self.data_transformation_config.transformed_test_file_path
             )
+
+            logging.info("Data Transformation completed successfully.")
             return data_transformation_artifact
 
-
         except Exception as e:
-            raise NetworkSecurityException(e,sys)
+            raise NetworkSecurityException(e, sys)

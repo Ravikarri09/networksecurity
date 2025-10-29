@@ -68,3 +68,5 @@ MODEL_TRAINER_OVERFITTING_THRESHOLD: float = 0.05
 
 SAVED_MODEL_DIR = os.path.join("saved_models")
 SAVED_MODEL_FILE_NAME = "model.pkl"
+# Cloud storage / model registry related constants
+TRAINING_BUCKET_NAME: str = "networksecurity-model"

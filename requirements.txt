@@ -8,5 +8,8 @@ pymongo[srv]==4.7
 dill
 PyYAML
 mlflow
-
+dagshub
+fastapi
+uvicorn
+whois
 ##-e .
